@@ -47,22 +47,33 @@ public class MainActivity  extends AppCompatActivity {
     private boolean loginFinished = false;
     private boolean firstTimeLogin = true;
 
+    private boolean isMainActivityActive = false;
+
+    private String PASSWORD = "PASSWORD";
+    private String FIRST_LAUNCH = "firstlaunch";
+
     SharedPreferences prefs = null;
 
+    private String appName = "com.egduserinterface.cj2userinterface.CJ2UserInterface";
+
+    ArrayList<String> closestSuggestionsList;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        prefs = getSharedPreferences("com.mycompany.myAppName", MODE_PRIVATE);
-        if(prefs.contains("PASSWORD")){
+        prefs = getSharedPreferences(appName, MODE_PRIVATE);
+        if(prefs.contains(PASSWORD)){
             firstTimeLogin = false;
+            checkVoiceRecognition(loginButton);
         } else {
             firstTimeLogin = true;
+            checkVoiceRecognition(firstLoginButton);
         }
-
+        isMainActivityActive = false;
         loginFinished = false;
-        if (prefs.getBoolean("firstlaunch", true)) {
-            prefs.edit().putBoolean("firstlaunch", false).commit();
+
+        if (prefs.getBoolean(FIRST_LAUNCH, true)) {
+            prefs.edit().putBoolean(FIRST_LAUNCH, false).apply();
             //textToSpeech.speak("Please set a password for the application", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
             setContentView(R.layout.first_login_layout);
         } else {
@@ -73,8 +84,10 @@ public class MainActivity  extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
+        if(isMainActivityActive) {
+            getMenuInflater().inflate(R.menu.main, menu);
+            return true;
+        } else return false;
     }
 
     @Override
@@ -102,7 +115,7 @@ public class MainActivity  extends AppCompatActivity {
                     textToSpeech.setLanguage(Locale.US);
                     textToSpeech.setPitch(1f);
                     textToSpeech.setSpeechRate(1f);
-                    //Changing the voice for the Text to Speech
+                    //TODO Changing the voice for the Text to Speech
                     //Voice v=new Voice ("it-it-x-kda#male_2-local", Locale.getDefault(),1,1,false,null);
                     //textToSpeech.setVoice(v);
                 } else {
@@ -161,41 +174,53 @@ public class MainActivity  extends AppCompatActivity {
                 ArrayList<String> textMatchList = data
                         .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
 
-                if (loginFinished == false) {
-                    if (firstTimeLogin == true) {
+                if (!loginFinished) {
+                    //TODO Ability to change password
+                    //TODO Ability to restore forgotten password
+                    if (firstTimeLogin) {
                         firstLoginButton = (Button) findViewById(R.id.firstTimePasswordButton);
-                        checkVoiceRecognition(firstLoginButton);
+                        //checkVoiceRecognition(firstLoginButton);
                         textToSpeech.speak("Password saved", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
 
                         String userPassword = textMatchList.get(0);
                         userPassword = userPassword.replace(" ","").trim();
-                        prefs.edit().putString("PASSWORD", userPassword).commit();
+                        prefs.edit().putString(PASSWORD, userPassword).apply();
                         firstTimeLogin = false;
                         loginFinished = true;
                         setContentView(R.layout.activity_main);
+
+                        isMainActivityActive = true;
+                        invalidateOptionsMenu();
+
                         listOfMatches = (ListView) findViewById(R.id.lvTextMatches);
                         textMatches = (Spinner) findViewById(R.id.sNoOfMatches);
                         speakButton = (Button) findViewById(R.id.btSpeak);
                         checkVoiceRecognition(speakButton);
+                        textMatches.setSelection(4);
 
                         PreferenceManager.setDefaultValues(this, R.xml.pref_general, false);
                         PreferenceManager.setDefaultValues(this, R.xml.pref_notification, false);
                         PreferenceManager.setDefaultValues(this, R.xml.pref_data_sync, false);
                     } else {
                         loginButton = (Button) findViewById(R.id.loginButton);
-                        checkVoiceRecognition(loginButton);
+                        //checkVoiceRecognition(loginButton);
                         String passwordSpoken = textMatchList.get(0);
                         passwordSpoken = passwordSpoken.replace(" ", "");
-                        if (passwordSpoken.equals(prefs.getString("PASSWORD", "defaultValue"))) {
+                        if (passwordSpoken.equals(prefs.getString(PASSWORD, "defaultValue"))) {
 
                             textToSpeech.speak("Login successful.", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
 
                             loginFinished = true;
                             setContentView(R.layout.activity_main);
+
+                            isMainActivityActive = true;
+                            invalidateOptionsMenu();
+
                             listOfMatches = (ListView) findViewById(R.id.lvTextMatches);
                             textMatches = (Spinner) findViewById(R.id.sNoOfMatches);
                             speakButton = (Button) findViewById(R.id.btSpeak);
                             checkVoiceRecognition(speakButton);
+                            textMatches.setSelection(4);
 
                             PreferenceManager.setDefaultValues(this, R.xml.pref_general, false);
                             PreferenceManager.setDefaultValues(this, R.xml.pref_notification, false);
@@ -229,8 +254,16 @@ public class MainActivity  extends AppCompatActivity {
                                     .setAdapter(new ArrayAdapter<String>(this,
                                             android.R.layout.simple_list_item_1,
                                             textMatchList));
-                            for (int i = 1; i < textMatchList.size(); i++) {
-                                textToSpeech.speak(textMatchList.get(i), TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+
+                            closestSuggestionsList = textMatchList;
+                            textToSpeech.speak("What you said was not correctly understood", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+                            pause300();
+                            for (int i = 0; i < textMatchList.size(); i++) {
+                                textToSpeech.speak("These are the closest matches found", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+                                pause300();
+                                textToSpeech.speak(Integer.toString(i+1), TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+                                pause300();
+                                textToSpeech.speak(closestSuggestionsList.get(i), TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
                             }
                         }
                     }
