@@ -134,14 +134,6 @@ public class MainActivity  extends AppCompatActivity {
         }
     }
 
-    private void speak(String text){
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
-        }else{
-            textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null);
-        }
-    }
-
     public void loginSpeak(View view) {
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getClass()
