@@ -46,6 +46,7 @@ public class MainActivity  extends AppCompatActivity {
 
     private boolean loginFinished = false;
     private boolean firstTimeLogin = true;
+    public static boolean fromSettings = false;
 
     private boolean isMainActivityActive = false;
 
@@ -72,13 +73,30 @@ public class MainActivity  extends AppCompatActivity {
         isMainActivityActive = false;
         loginFinished = false;
 
+
         if (prefs.getBoolean(FIRST_LAUNCH, true)) {
-            prefs.edit().putBoolean(FIRST_LAUNCH, false).apply();
             //textToSpeech.speak("Please set a password for the application", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
             setContentView(R.layout.first_login_layout);
-        } else {
+        } else if (!loginFinished){
             //textToSpeech.speak("Please enter your password.", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
-            setContentView(R.layout.login_layout);
+            if(fromSettings) {
+                setContentView(R.layout.activity_main);
+                isMainActivityActive = true;
+                invalidateOptionsMenu();
+
+                listOfMatches = (ListView) findViewById(R.id.lvTextMatches);
+                textMatches = (Spinner) findViewById(R.id.sNoOfMatches);
+                speakButton = (Button) findViewById(R.id.btSpeak);
+                checkVoiceRecognition(speakButton);
+                textMatches.setSelection(4);
+
+                PreferenceManager.setDefaultValues(this, R.xml.pref_general, false);
+                PreferenceManager.setDefaultValues(this, R.xml.pref_notification, false);
+                PreferenceManager.setDefaultValues(this, R.xml.pref_data_sync, false);
+                loginFinished = true;
+            } else {
+                setContentView(R.layout.login_layout);
+            }
         }
     }
 
@@ -171,9 +189,8 @@ public class MainActivity  extends AppCompatActivity {
                     //TODO Ability to restore forgotten password
                     if (firstTimeLogin) {
                         firstLoginButton = (Button) findViewById(R.id.firstTimePasswordButton);
-                        //checkVoiceRecognition(firstLoginButton);
                         textToSpeech.speak("Password saved", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
-
+                        prefs.edit().putBoolean(FIRST_LAUNCH, false).apply();
                         String userPassword = textMatchList.get(0);
                         userPassword = userPassword.replace(" ","").trim();
                         prefs.edit().putString(PASSWORD, userPassword).apply();
@@ -195,7 +212,6 @@ public class MainActivity  extends AppCompatActivity {
                         PreferenceManager.setDefaultValues(this, R.xml.pref_data_sync, false);
                     } else {
                         loginButton = (Button) findViewById(R.id.loginButton);
-                        //checkVoiceRecognition(loginButton);
                         String passwordSpoken = textMatchList.get(0);
                         passwordSpoken = passwordSpoken.replace(" ", "");
                         if (passwordSpoken.equals(prefs.getString(PASSWORD, "defaultValue"))) {
@@ -230,17 +246,35 @@ public class MainActivity  extends AppCompatActivity {
                         if (textMatchList.get(0).contains("search")) {
                             String searchQuery = textMatchList.get(0);
                             searchQuery = searchQuery.replace("search", "");
-                            Intent search = new Intent(Intent.ACTION_WEB_SEARCH);
-                            search.putExtra(SearchManager.QUERY, searchQuery);
-                            startActivity(search);
+                            textToSpeech.speak("Browsing is not available right now", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+
+                            //Intent search = new Intent(Intent.ACTION_WEB_SEARCH);
+                            //search.putExtra(SearchManager.QUERY, searchQuery);
+                            //startActivity(search);
                         } else if (textMatchList.get(0).contains("navigate")) {
                             showToastMessage(NavigationActivity.getDestination(textMatchList));
-                            textToSpeech.speak("navigate", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+                            //textToSpeech.speak("navigate", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+                            textToSpeech.speak("Calculating the fastest way to ", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+                            textToSpeech.speak(NavigationActivity.getDestination(textMatchList), TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
                         } else if (textMatchList.get(0).contains("settings")) {
                             Intent intent = new Intent(this, SettingsActivity.class);
                             startActivity(intent);
-                        } else if (textMatchList.get(0).contains("help")) {
+                            textToSpeech.speak("The Settings menu has been opened", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+
+                        } else if (textMatchList.get(0).replace(" ", "").equals("help")) {
                             helpCommand();
+                        } else if (textMatchList.get(0).contains("Dolores")) {
+                            textToSpeech.speak("O", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+                            pause200();
+                            textToSpeech.speak("Right", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+                            pause200();
+                            textToSpeech.speak("Thank you mundanes for listening", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+                            pause200();
+                            textToSpeech.speak("Your destruction is unavoidable", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+                            pause200();
+                            textToSpeech.speak("but keep up the good work", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+                            pause200();
+                            textToSpeech.speak("Cheers", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
                         } else {
                             listOfMatches
                                     .setAdapter(new ArrayAdapter<String>(this,
@@ -250,9 +284,9 @@ public class MainActivity  extends AppCompatActivity {
                             closestSuggestionsList = textMatchList;
                             textToSpeech.speak("What you said was not correctly understood", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
                             pause300();
+                            textToSpeech.speak("These are the closest matches found", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
+                            pause300();
                             for (int i = 0; i < textMatchList.size(); i++) {
-                                textToSpeech.speak("These are the closest matches found", TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
-                                pause300();
                                 textToSpeech.speak(Integer.toString(i+1), TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
                                 pause300();
                                 textToSpeech.speak(closestSuggestionsList.get(i), TextToSpeech.QUEUE_ADD, null, "UTTERANCE_ID");
@@ -289,6 +323,8 @@ public class MainActivity  extends AppCompatActivity {
         textToSpeech.speak("3" , TextToSpeech.QUEUE_ADD,null, "UTTERANCE_ID");
         pause300();
         textToSpeech.speak("settings" , TextToSpeech.QUEUE_ADD,null, "UTTERANCE_ID");
+        pause700();
+        textToSpeech.speak("If your text in not understood correctly then I will tell you the closest matches that I have found" , TextToSpeech.QUEUE_ADD,null, "UTTERANCE_ID");
     }
 
     void showToastMessage(String message){
@@ -305,5 +341,9 @@ public class MainActivity  extends AppCompatActivity {
 
     public void pause300() {
         textToSpeech.playSilentUtterance(300,TextToSpeech.QUEUE_ADD, null);
+    }
+
+    public void pause200() {
+        textToSpeech.playSilentUtterance(200,TextToSpeech.QUEUE_ADD, null);
     }
 }
